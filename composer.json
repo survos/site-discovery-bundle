@@ -1,0 +1,43 @@
+{
+    "name": "survos/site-discovery-bundle",
+    "description": "Discover hosted SaaS tenant sites (*.example.com) via web archive indexes. Currently supports Internet Archive CDX API only.",
+    "keywords": [
+        "cdx",
+        "internet-archive",
+        "site-discovery",
+        "symfony",
+        "harvest"
+    ],
+    "license": "MIT",
+    "type": "symfony-bundle",
+    "authors": [
+        {
+            "name": "Tac Tacelosky",
+            "email": "tacman@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^8.4",
+        "symfony/config": "^8.0",
+        "symfony/console": "^8.0",
+        "symfony/dependency-injection": "^8.0",
+        "symfony/http-client": "^8.0",
+        "symfony/http-kernel": "^8.0"
+    },
+    "require-dev": {
+        "symfony/phpunit-bridge": "^8.0"
+    },
+    "suggest": {
+        "survos/jsonl-bundle": "Provides JsonlWriter/JsonlReader for writing and resuming discovery output files"
+    },
+    "autoload": {
+        "psr-4": {
+            "Survos\\SiteDiscoveryBundle\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Survos\\SiteDiscoveryBundle\\Tests\\": "tests/"
+        }
+    }
+}
