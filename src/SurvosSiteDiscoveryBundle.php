@@ -11,8 +11,6 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 
-use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
-
 final class SurvosSiteDiscoveryBundle extends AbstractBundle
 {
     public function configure(DefinitionConfigurator $definition): void
@@ -31,10 +29,8 @@ final class SurvosSiteDiscoveryBundle extends AbstractBundle
         $services = $container->services();
 
         $services->set(CdxDiscoveryService::class)
-            ->args([
-                service('http_client'),
-                $config['user_agent'],
-            ]);
+            ->autowire()
+            ->arg('$userAgent', $config['user_agent']);
 
         $services->set(SiteDiscoverCommand::class)
             ->autowire()

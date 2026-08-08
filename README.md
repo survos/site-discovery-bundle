@@ -234,6 +234,24 @@ The CDX API is free and unauthenticated. The Internet Archive does not publish a
 rate limit, but hammering the API with parallel requests is antisocial. This bundle
 makes one sequential request per page. Do not add concurrency.
 
+## Fetch strategy (cache/retry)
+
+`CdxDiscoveryService` fetches through `survos/fetch-bundle`'s `PersistentFetcherInterface`
+rather than a raw `HttpClientInterface`.
+
+- **Cache:** each page request (including its `resumeKey`) is keyed by its full query URL and
+  cached **forever** in a SQLite pool at `var/data/fetch_cache.db` — until `forget()`/
+  `force_fetch`. Given the CDX API's 10–30s/page latency (see above), this is what makes
+  re-running discovery during development cheap instead of re-paying that cost every time.
+  If new tenant sites should be picked up that a cached run would miss, `force_fetch` (or clear
+  the relevant cache entries) rather than assuming the API is being re-queried live.
+- **Retry:** up to 5 attempts, full-jitter exponential backoff (200ms base, 10s cap), on
+  transport errors, HTTP 429, and 5xx — in addition to this bundle's own sequential-only,
+  no-concurrency policy above.
+
+Before 2026-08-08 this used a raw `HttpClientInterface` with no caching — every discovery run
+re-paid the full CDX latency for every page, even re-running the exact same query.
+
 ---
 
 ## Downstream validation

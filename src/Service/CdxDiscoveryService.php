@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Survos\SiteDiscoveryBundle\Service;
 
+use Survos\FetchBundle\Contract\PersistentFetcherInterface;
 use Survos\SiteDiscoveryBundle\Model\DiscoveredSite;
-use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 use function sprintf;
 use function preg_match;
@@ -57,7 +57,7 @@ final class CdxDiscoveryService
     private const SOURCE_KEY = 'internet_archive_cdx';
 
     public function __construct(
-        private readonly HttpClientInterface $httpClient,
+        private readonly PersistentFetcherInterface $persistentFetcher,
         private readonly string $userAgent = 'SurvosSiteDiscoveryBundle',
     ) {}
 
@@ -106,17 +106,21 @@ final class CdxDiscoveryService
                 $params['resumeKey'] = $resumeKey;
             }
 
-            $response = $this->httpClient->request('GET', self::CDX_API, [
-                'query'   => $params,
+            // Each distinct query (including resumeKey) is cached forever by PersistentFetcher --
+            // the CDX API is slow (10-30s/page) and re-running discovery during development would
+            // otherwise re-pay that cost every time for data that rarely changes. See this
+            // bundle's README.
+            $url = self::CDX_API . '?' . http_build_query($params);
+            $result = $this->persistentFetcher->fetch($url, [
                 'headers' => ['User-Agent' => $this->userAgent],
                 'timeout' => 120,
             ]);
 
-            if ($response->getStatusCode() !== 200) {
-                throw new \RuntimeException(sprintf('CDX API returned HTTP %d for domain "%s".', $response->getStatusCode(), $domain));
+            if (!$result->isOkay()) {
+                throw new \RuntimeException(sprintf('CDX API returned HTTP %d for domain "%s".', $result->statusCode, $domain));
             }
 
-            $decoded = json_decode($response->getContent(), true);
+            $decoded = json_decode($result->contents ?? '', true);
             if (!is_array($decoded) || count($decoded) < 2) {
                 // Empty result or header-only — no more data.
                 return;

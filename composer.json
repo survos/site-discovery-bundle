@@ -21,8 +21,8 @@
         "symfony/config": "^8.1",
         "symfony/console": "^8.1",
         "symfony/dependency-injection": "^8.1",
-        "symfony/http-client": "^8.1",
-        "symfony/http-kernel": "^8.1"
+        "symfony/http-kernel": "^8.1",
+        "survos/fetch-bundle": "^2.5"
     },
     "require-dev": {
         "symfony/phpunit-bridge": "^8.1"
