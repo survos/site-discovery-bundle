@@ -7,15 +7,6 @@ namespace Survos\SiteDiscoveryBundle\Service;
 use Survos\FetchBundle\Contract\PersistentFetcherInterface;
 use Survos\SiteDiscoveryBundle\Model\DiscoveredSite;
 
-use function sprintf;
-use function preg_match;
-use function str_starts_with;
-use function array_merge;
-use function is_array;
-use function count;
-use function array_slice;
-use function json_decode;
-
 /**
  * Discovers tenant hostnames under a shared SaaS domain via the Internet Archive CDX API.
  *
@@ -53,23 +44,24 @@ use function json_decode;
  */
 final class CdxDiscoveryService
 {
-    private const CDX_API    = 'https://web.archive.org/cdx/search/cdx';
+    private const CDX_API = 'https://web.archive.org/cdx/search/cdx';
     private const SOURCE_KEY = 'internet_archive_cdx';
 
     public function __construct(
         private readonly PersistentFetcherInterface $persistentFetcher,
         private readonly string $userAgent = 'SurvosSiteDiscoveryBundle',
-    ) {}
+    ) {
+    }
 
     /**
      * Yield one DiscoveredSite per unique tenant slug found in the CDX index.
      *
-     * @param string $domain      Bare registered domain, e.g. "pastperfectonline.com"
-     * @param string $surtPrefix  SURT prefix for subdomain rows, e.g. "com,pastperfectonline,"
-     * @param string $scheme      URL scheme for the constructed base_url (default "https")
-     * @param int    $limit       Stop after this many unique sites (0 = unlimited).
-     *                            Set a small number (e.g. 5) during development/testing.
-     * @param int    $pageSize    CDX rows per API request (default 5000; max ~10000).
+     * @param string $domain     Bare registered domain, e.g. "pastperfectonline.com"
+     * @param string $surtPrefix SURT prefix for subdomain rows, e.g. "com,pastperfectonline,"
+     * @param string $scheme     URL scheme for the constructed base_url (default "https")
+     * @param int    $limit      Stop after this many unique sites (0 = unlimited).
+     *                           Set a small number (e.g. 5) during development/testing.
+     * @param int    $pageSize   CDX rows per API request (default 5000; max ~10000)
      *
      * @return \Generator<DiscoveredSite>
      */
@@ -82,27 +74,27 @@ final class CdxDiscoveryService
     ): \Generator {
         // Build a regex that matches urlkeys starting with the surt prefix + an alphanumeric char.
         // Tenant slugs use [a-z0-9] on PPO; Omeka slugs can include hyphens → use [a-z0-9-].
-        $filterValue = $surtPrefix . '[a-z0-9]';
+        $filterValue = $surtPrefix.'[a-z0-9]';
         // Slug capture: everything between the prefix and the closing ")"
-        $slugRe = '/^' . preg_quote($surtPrefix, '/') . '([a-z0-9][a-z0-9-]*)\)/';
+        $slugRe = '/^'.preg_quote($surtPrefix, '/').'([a-z0-9][a-z0-9-]*)\)/';
 
-        $seen      = [];
-        $count     = 0;
+        $seen = [];
+        $count = 0;
         $resumeKey = null;
 
         do {
             $params = [
-                'url'           => $domain,
-                'matchType'     => 'domain',
-                'output'        => 'json',
-                'fl'            => 'urlkey',
-                'collapse'      => 'urlkey',
-                'filter'        => 'urlkey:' . $filterValue,
-                'limit'         => $pageSize,
+                'url' => $domain,
+                'matchType' => 'domain',
+                'output' => 'json',
+                'fl' => 'urlkey',
+                'collapse' => 'urlkey',
+                'filter' => 'urlkey:'.$filterValue,
+                'limit' => $pageSize,
                 'showResumeKey' => 'true',
             ];
 
-            if ($resumeKey !== null) {
+            if (null !== $resumeKey) {
                 $params['resumeKey'] = $resumeKey;
             }
 
@@ -110,18 +102,18 @@ final class CdxDiscoveryService
             // the CDX API is slow (10-30s/page) and re-running discovery during development would
             // otherwise re-pay that cost every time for data that rarely changes. See this
             // bundle's README.
-            $url = self::CDX_API . '?' . http_build_query($params);
+            $url = self::CDX_API.'?'.http_build_query($params);
             $result = $this->persistentFetcher->fetch($url, [
                 'headers' => ['User-Agent' => $this->userAgent],
                 'timeout' => 120,
             ]);
 
             if (!$result->isOkay()) {
-                throw new \RuntimeException(sprintf('CDX API returned HTTP %d for domain "%s".', $result->statusCode, $domain));
+                throw new \RuntimeException(\sprintf('CDX API returned HTTP %d for domain "%s".', $result->statusCode, $domain));
             }
 
-            $decoded = json_decode($result->contents ?? '', true);
-            if (!is_array($decoded) || count($decoded) < 2) {
+            $decoded = \json_decode($result->contents ?? '', true);
+            if (!\is_array($decoded) || \count($decoded) < 2) {
                 // Empty result or header-only — no more data.
                 return;
             }
@@ -129,20 +121,20 @@ final class CdxDiscoveryService
             // Row 0 is the header ["urlkey"] — skip it.
             $resumeKey = null;
 
-            foreach (array_slice($decoded, 1) as $row) {
-                if (!is_array($row) || !isset($row[0])) {
+            foreach (\array_slice($decoded, 1) as $row) {
+                if (!\is_array($row) || !isset($row[0])) {
                     continue;
                 }
 
                 $value = (string) $row[0];
 
                 // Resume keys do not start with the SURT prefix.
-                if (!str_starts_with($value, $surtPrefix)) {
+                if (!\str_starts_with($value, $surtPrefix)) {
                     $resumeKey = $value;
                     continue;
                 }
 
-                if (!preg_match($slugRe, $value, $m)) {
+                if (!\preg_match($slugRe, $value, $m)) {
                     continue;
                 }
 
@@ -152,20 +144,20 @@ final class CdxDiscoveryService
                 }
                 $seen[$slug] = true;
 
-                $host = $slug . '.' . $domain;
+                $host = $slug.'.'.$domain;
 
                 yield new DiscoveredSite(
-                    slug:         $slug,
-                    host:         $host,
-                    baseUrl:      $scheme . '://' . $host,
+                    slug: $slug,
+                    host: $host,
+                    baseUrl: $scheme.'://'.$host,
                     discoveredVia: self::SOURCE_KEY,
                 );
 
-                $count++;
+                ++$count;
                 if ($limit > 0 && $count >= $limit) {
                     return;
                 }
             }
-        } while ($resumeKey !== null);
+        } while (null !== $resumeKey);
     }
 }

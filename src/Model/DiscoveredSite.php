@@ -21,18 +21,19 @@ final readonly class DiscoveredSite
 
         /** Which backend found this site: "internet_archive_cdx" */
         public string $discoveredVia,
-    ) {}
+    ) {
+    }
 
     /** @return array<string, mixed> */
     public function toArray(): array
     {
         return [
-            'slug'          => $this->slug,
-            'host'          => $this->host,
-            'base_url'      => $this->baseUrl,
+            'slug' => $this->slug,
+            'host' => $this->host,
+            'base_url' => $this->baseUrl,
             'discovered_via' => $this->discoveredVia,
-            'validated'     => false,
-            'validated_at'  => null,
+            'validated' => false,
+            'validated_at' => null,
         ];
     }
 }
